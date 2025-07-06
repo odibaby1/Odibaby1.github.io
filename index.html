@@ -1,27 +1,270 @@
-	<!DOCTYPE html>
-<html>
-<head>
-  <title>Auto Vente – odibaby1</title>
-  <meta charset="UTF-8">
-</head>
-<body style="font-family: sans-serif; background-color: #f4f4f4; padding: 20px;">
-  <h1 style="color: #2c3e50;">🚗 Bienvenue chez Auto Vente</h1>
-  <p>Vente de voitures d'occasion fiables à prix compétitifs.</p>
+export type Car = {
+  id: string
+  brand: string
+  model: string
+  year: number
+  price: number
+  mileage: number
+  fuelType: 'essence' | 'diesel' | 'hybride' | 'electrique'
+  transmission: 'manuelle' | 'automatique'
+  description: 
+  images: string[]
+  createdAt: Date
+  seller: {
+    id: midi
+    name: midi
+    rating?: 222000
+  }
+}
 
-  <h2>Nos véhicules disponibles :</h2>
+export type CarSearchParams = {
+  brand?: string
+  model?: string
+  minPrice?: number
+  maxPrice?: number
+  minYear?: number
+  maxYear?: number
+  maxMileage?: number
+  fuelType?: string[]
+  transmission?: string[]
+}
+import { Car } from '../types/car'
+import { Button } from '../components/ui/button'
+import { Star, CarFront, Gauge, CalendarDays, Fuel } from 'lucide-react'
 
-<h3>Peugeot 208 – 2021 – 8 500 €</h3>
-<img src="peugeot.png" width="300" alt="Peugeot 208">
+export function CarCard({ car }: { car: Car }) {
+  return (
+    <div className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+      {/* Image principale */}
+      <div className="bg-gray-200 h-48 relative">
+        {car.images.length > 0 ? (
+          <img 
+            src={car.images[0]} 
+            alt={`${car.brand} ${car.model}`}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-500">
+            <CarFront className="h-12 w-12" />
+          </div>
+        )}
+        <div className="absolute top-2 right-2 bg-white/90 px-2 py-1 rounded text-sm font-medium">
+          {car.price.toLocaleString('fr-FR')} €
+        </div>
+      </div>
 
-<h3>Renault Clio – 2019 – 7 200 €</h3>
-<img src="clio.png" width="300" alt="Renault Clio">
+      {/* Détails du véhicule */}
+      <div className="p-4">
+        <h3 className="text-xl font-bold">
+          {car.brand} {car.model}
+        </h3>
+        
+        <div className="flex items-center gap-1 mt-1 mb-3">
+          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+          <span className="text-sm text-gray-600">
+            {car.seller.rating ? car.seller.rating.toFixed(1) : 'Nouveau'}
+          </span>
+        </div>
 
-<h3>Dacia Sandero – 2020 – 6 900 €</h3>
-<img src="sandero.png" width="300" alt="Dacia Sandero">
-  </ul>
+        <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm mt-4">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 text-gray-500" />
+            <span>{car.year}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Gauge className="h-4 w-4 text-gray-500" />
+            <span>{car.mileage.toLocaleString('fr-FR')} km</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Fuel className="h-4 w-4 text-gray-500" />
+            <span>
+              {car.fuelType === 'essence' && 'Essence'}
+              {car.fuelType === 'diesel' && 'Diesel'}
+              {car.fuelType === 'hybride' && 'Hybride'}
+              {car.fuelType === 'electrique' && 'Électrique'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500">Boîte:</span>
+            <span>
+              {car.transmission === 'manuelle' ? 'Manuelle' : 'Automatique'}
+            </span>
+          </div>
+        </div>
 
-  <h3>📞 Contact</h3>
-  <p>WhatsApp : 
-  <p>Email : odibaby1@example.com</p>
-</body>
-</html>
+        <Button className="w-full mt-6">Voir détails</Button>
+      </div>
+    </div>
+  )
+}
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { Car, CarSearchParams } from '../types/car'
+import { CarCard } from '../components/CarCard'
+import { FilterSidebar } from '../components/FilterSidebar'
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
+import { Search } from 'lucide-react'
+import { useCars } from '../features/cars/useCars'
+
+export default function SearchPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filters, setFilters] = useState<CarSearchParams>({
+    brand: searchParams.get('brand') || undefined,
+    minPrice: searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined,
+    // ... autres filtres initiaux
+  })
+
+  const { cars, isLoading, error } = useCars(filters)
+
+  const handleSearch = () => {
+    setFilters(prev => ({
+      ...prev,
+      model: searchTerm || undefined
+    }))
+  }
+
+  const handleFilterChange = (newFilters: CarSearchParams) => {
+    setFilters(prev => ({ ...prev, ...newFilters }))
+    // Mise à jour de l'URL
+    const params = new URLSearchParams()
+    if (newFilters.brand) params.set('brand', newFilters.brand)
+    if (newFilters.minPrice) params.set('minPrice', newFilters.minPrice.toString())
+    // ... autres paramètres
+    setSearchParams(params)
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col md:flex-row gap-8">
+        {/* Sidebar des filtres */}
+        <div className="w-full md:w-72 flex-shrink-0">
+          <FilterSidebar 
+            filters={filters} 
+            onFilterChange={handleFilterChange} 
+          />
+        </div>
+
+        {/* Contenu principal */}
+        <div className="flex-1">
+          {/* Barre de recherche */}
+          <div className="flex gap-2 mb-6">
+            <Input
+              placeholder="Rechercher par modèle..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+            />
+            <Button onClick={handleSearch}>
+              <Search className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Résultats */}
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <p>Chargement en cours...</p>
+            </div>
+          ) : error ? (
+            <div className="text-red-500">{error}</div>
+          ) : (
+            <>
+              <div className="mb-4 flex justify-between items-center">
+                <h2 className="text-xl font-semibold">
+                  {cars.length} véhicule{cars.length !== 1 ? 's' : ''} trouvé{cars.length !== 1 ? 's' : ''}
+                </h2>
+                {/* Tri pourrait être ajouté ici */}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {cars.map((car) => (
+                  <CarCard key={car.id} car={car} />
+                ))}
+              </div>
+
+              {cars.length === 0 && (
+                <div className="text-center py-12 text-gray-500">
+                  Aucun véhicule ne correspond à vos critères
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+import { useState, useEffect } from 'react'
+import { Car, CarSearchParams } from '../../types/car'
+
+export function useCars(filters: CarSearchParams) {
+  const [cars, setCars] = useState<Car[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchCars = async () => {
+      try {
+        setIsLoading(true)
+        // Ici vous feriez un appel à votre API
+        // const response = await fetch(`/api/cars?${new URLSearchParams(filters)}`)
+        // const data = await response.json()
+        
+        // Simulation de données
+        const mockCars: Car[] = [
+          {
+            id: '1',
+            brand: 'Peugeot',
+            model: '308',
+            year: 2020,
+            price: 22500,
+            mileage: 35000,
+            fuelType: 'essence',
+            transmission: 'manuelle',
+            description: 'Très bon état, entretien à jour',
+            images: [],
+            createdAt: new Date(),
+            seller: { id: '1', name: 'AutoPlus', rating: 4.5 }
+          },
+          // ... autres véhicules mockés
+        ]
+
+        // Filtrage simulé
+        const filteredCars = mockCars.filter(car => {
+          if (filters.brand && car.brand !== filters.brand) return false
+          if (filters.minPrice && car.price < filters.minPrice) return false
+          if (filters.maxPrice && car.price > filters.maxPrice) return false
+          // ... autres filtres
+          return true
+        })
+
+        setCars(filteredCars)
+        setError(null)
+      } catch (err) {
+        setError('Erreur lors du chargement des véhicules')
+        console.error(err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchCars()
+  }, [filters])
+
+  return { cars, isLoading, error }
+}
+
+      </div>
+
+      <div className="flex gap-2 pt-4">
+        <Button onClick={handleApply} className="flex-1">
+          Appliquer
+        </Button>
+        <Button variant="outline" onClick={handleReset}>
+          Réinitialiser
+        </Button>
+      </div>
+    </div>
+  )
+}
